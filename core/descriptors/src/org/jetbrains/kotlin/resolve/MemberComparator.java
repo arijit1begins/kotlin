@@ -49,52 +49,74 @@ public class MemberComparator implements Comparator<DeclarationDescriptor> {
     private MemberComparator() {
     }
 
-    private static int getDeclarationPriority(DeclarationDescriptor descriptor) {
-        if (isEnumEntry(descriptor)) {
-            return 8;
+    public static class NameAndTypeMemberComparator implements Comparator<DeclarationDescriptor> {
+        public static final NameAndTypeMemberComparator INSTANCE = new NameAndTypeMemberComparator();
+
+        private NameAndTypeMemberComparator() {
         }
-        else if (descriptor instanceof ConstructorDescriptor) {
-            return 7;
-        }
-        else if (descriptor instanceof PropertyDescriptor) {
-            if (((PropertyDescriptor)descriptor).getExtensionReceiverParameter() == null) {
-                return 6;
+
+        private static int getDeclarationPriority(DeclarationDescriptor descriptor) {
+            if (isEnumEntry(descriptor)) {
+                return 8;
             }
-            else {
-                return 5;
+            else if (descriptor instanceof ConstructorDescriptor) {
+                return 7;
             }
-        }
-        else if (descriptor instanceof FunctionDescriptor) {
-            if (((FunctionDescriptor)descriptor).getExtensionReceiverParameter() == null) {
-                return 4;
+            else if (descriptor instanceof PropertyDescriptor) {
+                if (((PropertyDescriptor) descriptor).getExtensionReceiverParameter() == null) {
+                    return 6;
+                }
+                else {
+                    return 5;
+                }
             }
-            else {
-                return 3;
+            else if (descriptor instanceof FunctionDescriptor) {
+                if (((FunctionDescriptor) descriptor).getExtensionReceiverParameter() == null) {
+                    return 4;
+                }
+                else {
+                    return 3;
+                }
             }
+            else if (descriptor instanceof ClassDescriptor) {
+                return 2;
+            }
+            else if (descriptor instanceof TypeAliasDescriptor) {
+                return 1;
+            }
+            return 0;
         }
-        else if (descriptor instanceof ClassDescriptor) {
-            return 2;
+
+        @Override
+        public int compare(DeclarationDescriptor o1, DeclarationDescriptor o2) {
+            int prioritiesCompareTo = getDeclarationPriority(o2) - getDeclarationPriority(o1);
+            if (prioritiesCompareTo != 0) {
+                return prioritiesCompareTo;
+            }
+            if (isEnumEntry(o1) && isEnumEntry(o2)) {
+                //never reorder enum entries
+                return 0;
+            }
+
+            int namesCompareTo = o1.getName().compareTo(o2.getName());
+            if (namesCompareTo != 0) {
+                return namesCompareTo;
+            }
+
+            return 0;
         }
-        else if (descriptor instanceof TypeAliasDescriptor) {
-            return 1;
-        }
-        return 0;
     }
 
     @Override
     public int compare(DeclarationDescriptor o1, DeclarationDescriptor o2) {
-        int prioritiesCompareTo = getDeclarationPriority(o2) - getDeclarationPriority(o1);
-        if (prioritiesCompareTo != 0) {
-            return prioritiesCompareTo;
+        int compare = NameAndTypeMemberComparator.INSTANCE.compare(o1, o2);
+        if (compare != 0) {
+            return compare;
         }
+
         if (isEnumEntry(o1) && isEnumEntry(o2)) {
             //never reorder enum entries
             return 0;
-        }
-
-        int namesCompareTo = o1.getName().compareTo(o2.getName());
-        if (namesCompareTo != 0) {
-            return namesCompareTo;
         }
 
         if (o1 instanceof TypeAliasDescriptor && o2 instanceof TypeAliasDescriptor) {

@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.codegen.*
 import org.jetbrains.kotlin.codegen.AsmUtil.getMethodAsmFlags
 import org.jetbrains.kotlin.codegen.AsmUtil.isPrimitive
+import org.jetbrains.kotlin.codegen.context.ClosureContext
 import org.jetbrains.kotlin.codegen.coroutines.*
 import org.jetbrains.kotlin.codegen.intrinsics.bytecode
 import org.jetbrains.kotlin.codegen.intrinsics.classId
@@ -225,6 +226,7 @@ abstract class InlineCodegen<out T: BaseExpressionCodegen>(
 
     private fun continuationIndex(): Int {
         codegen as ExpressionCodegen
+        if (codegen.context.parentContext is ClosureContext) return 0
         val isStatic = AsmUtil.isStaticMethod(codegen.context.contextKind, codegen.context.functionDescriptor)
         // 0 for this, and last for continuation
         return codegen.context.functionDescriptor.valueParameters.size - 1 + (if (isStatic) 0 else 1)

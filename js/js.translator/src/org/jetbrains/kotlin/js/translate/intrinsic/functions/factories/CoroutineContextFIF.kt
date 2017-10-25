@@ -22,7 +22,9 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.js.backend.ast.JsExpression
 import org.jetbrains.kotlin.js.backend.ast.JsNameRef
+import org.jetbrains.kotlin.js.backend.ast.JsThisRef
 import org.jetbrains.kotlin.js.backend.ast.metadata.inlineStrategy
+import org.jetbrains.kotlin.js.descriptorUtils.isCoroutineLambda
 import org.jetbrains.kotlin.js.translate.callTranslator.CallInfo
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.intrinsic.functions.basic.FunctionIntrinsic
@@ -45,8 +47,10 @@ object CoroutineContextFIF : FunctionIntrinsicFactory {
             )
             if (contContexts.isEmpty()) throw IllegalStateException("Continuation does not have context property")
             if (contContexts.size > 1) throw IllegalStateException("Multiple contexts in continuation")
-
-            val res = JsNameRef(context.getNameForDescriptor(contContexts.first()).ident, context.getNameForDescriptor(continuation).makeRef())
+            val res = if (context.declarationDescriptor?.isCoroutineLambda == true)
+                JsNameRef("this.${context.getNameForDescriptor(contContexts.first()).ident}")
+            else
+                JsNameRef(context.getNameForDescriptor(contContexts.first()).ident, context.getNameForDescriptor(continuation).makeRef())
             res.inlineStrategy = InlineStrategy.NOT_INLINE
             return res
         }

@@ -16,20 +16,25 @@
 
 package org.jetbrains.kotlin.backend.common
 
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyGetterDescriptor
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.DescriptorEquivalenceForOverrides
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.module
+import org.jetbrains.kotlin.types.typeUtil.supertypes
 
 val SUSPEND_COROUTINE_OR_RETURN_NAME = Name.identifier("suspendCoroutineOrReturn")
 val COROUTINE_SUSPENDED_NAME = Name.identifier("COROUTINE_SUSPENDED")
 
 val COROUTINES_INTRINSICS_PACKAGE_FQ_NAME = DescriptorUtils.COROUTINES_PACKAGE_FQ_NAME.child(Name.identifier("intrinsics"))
 val COROUTINE_CONTEXT_FQ_NAME = COROUTINES_INTRINSICS_PACKAGE_FQ_NAME.child(Name.identifier("coroutineContext"))
+val COROUTINE_IMPL_FQ_NAME = FqName("kotlin.coroutines.experimental.jvm.internal.CoroutineImpl")
+val DO_RESUME_NAME = Name.identifier("doResume")
 
 fun FunctionDescriptor.isBuiltInSuspendCoroutineOrReturn(): Boolean {
     if (name != SUSPEND_COROUTINE_OR_RETURN_NAME) return false
@@ -48,3 +53,10 @@ fun FunctionDescriptor.getBuiltInSuspendCoroutineOrReturn() =
 
 fun FunctionDescriptor.isBuiltInCoroutineContext() =
         (this as? PropertyGetterDescriptor)?.correspondingProperty?.fqNameSafe == COROUTINE_CONTEXT_FQ_NAME
+
+fun FunctionDescriptor.isCoroutineImplDoResume() =
+        this.name == DO_RESUME_NAME &&
+        this.containingDeclaration is ClassDescriptor &&
+        (this.containingDeclaration as ClassDescriptor).defaultType.supertypes().any {
+            it.constructor.declarationDescriptor?.fqNameSafe == COROUTINE_IMPL_FQ_NAME
+        }

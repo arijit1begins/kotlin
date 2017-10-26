@@ -19,6 +19,7 @@ package org.jetbrains.kotlin.codegen.inline
 import com.intellij.psi.PsiElement
 import com.intellij.util.ArrayUtil
 import org.jetbrains.kotlin.backend.common.isBuiltInCoroutineContext
+import org.jetbrains.kotlin.backend.common.isCoroutineImplDoResume
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.codegen.*
 import org.jetbrains.kotlin.codegen.AsmUtil.getMethodAsmFlags
@@ -226,10 +227,11 @@ abstract class InlineCodegen<out T: BaseExpressionCodegen>(
 
     private fun continuationIndex(): Int {
         codegen as ExpressionCodegen
-        if (codegen.context.parentContext is ClosureContext) return 0
-        val isStatic = AsmUtil.isStaticMethod(codegen.context.contextKind, codegen.context.functionDescriptor)
+        val functionDescriptor = codegen.context.functionDescriptor
+        if (codegen.context.parentContext is ClosureContext && functionDescriptor.isCoroutineImplDoResume()) return 0
+        val isStatic = AsmUtil.isStaticMethod(codegen.context.contextKind, functionDescriptor)
         // 0 for this, and last for continuation
-        return codegen.context.functionDescriptor.valueParameters.size - 1 + (if (isStatic) 0 else 1)
+        return functionDescriptor.valueParameters.size - 1 + (if (isStatic) 0 else 1)
     }
 
     protected fun inlineCall(nodeAndSmap: SMAPAndMethodNode, callDefault: Boolean): InlineResult {
